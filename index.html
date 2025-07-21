@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Expense Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for better mobile view */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* Custom scrollbar for the expense list and history list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e5e7eb; /* Light gray track */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #9ca3af; /* Gray thumb */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* Darker gray on hover */
+        }
+        /* Style for selected category button */
+        .category-btn.selected, .sub-category-btn.selected, .type-btn.selected {
+            background-color: #4f46e5; /* Indigo-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .category-btn:not(.selected), .sub-category-btn:not(.selected), .type-btn:not(.selected) {
+            background-color: #e5e7eb; /* Gray-200 */
+            color: #4b5563; /* Gray-700 */
+        }
+        /* Specific color for income type button when selected */
+        .type-btn[data-type="incoming"].selected {
+            background-color: #10b981; /* Green-500 */
+        }
+        /* Specific color for outgoing type button when selected */
+        .type-btn[data-type="outgoing"].selected {
+            background-color: #ef4444; /* Red-500 */
+        }
+        /* Style for selected account type button */
+        .account-type-btn.selected {
+            background-color: #1d4ed8; /* Blue-700 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .account-type-btn:not(.selected) {
+            background-color: #e0f2fe; /* Blue-50 */
+            color: #1e40af; /* Blue-800 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 space-y-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Weekly Expense Tracker</h1>
+
+        <!-- Top-level Category Selection -->
+        <div class="p-5 bg-indigo-50 rounded-lg shadow-inner space-y-4">
+            <h2 class="text-2xl font-semibold text-indigo-800 text-center mb-4">Select Log Type</h2>
+            <div class="flex space-x-4">
+                <button
+                    id="select-personal-log-btn"
+                    class="flex-1 px-4 py-3 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out category-btn"
+                    data-log-type="personal"
+                >
+                    Personal Log
+                </button>
+                <button
+                    id="select-business-log-btn"
+                    class="flex-1 px-4 py-3 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out category-btn"
+                    data-log-type="business"
+                >
+                    Business Log
+                </button>
+            </div>
+
+            <!-- Personal Sub-category: Student/Not Student -->
+            <div id="personal-sub-category-container" class="space-y-4 hidden">
+                <h3 class="text-xl font-semibold text-indigo-700 text-center mt-4">Personal Type</h3>
+                <div class="flex space-x-4">
+                    <button
+                        id="select-student-btn"
+                        class="flex-1 px-4 py-3 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out sub-category-btn"
+                        data-student="true"
+                    >
+                        Student
+                    </button>
+                    <button
+                        id="select-not-student-btn"
+                        class="flex-1 px-4 py-3 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out sub-category-btn"
+                        data-student="false"
+                    >
+                        Not Student
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Week Section & Input (Initially Hidden) -->
+        <div id="current-week-section" class="p-5 bg-blue-50 rounded-lg shadow-inner space-y-4 hidden">
+            <h2 id="current-week-title" class="text-2xl font-semibold text-blue-800 text-center mb-4"></h2>
+
+            <!-- Date Selection Dropdowns -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="select-year" class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <select id="select-year" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"></select>
+                </div>
+                <div>
+                    <label for="select-month" class="block text-sm font-medium text-gray-700 mb-1">Month</label>
+                    <select id="select-month" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"></select>
+                </div>
+                <div>
+                    <label for="select-week" class="block text-sm font-medium text-gray-700 mb-1">Week Period</label>
+                    <select id="select-week" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"></select>
+                </div>
+            </div>
+
+            <button
+                id="load-week-btn"
+                class="w-full px-6 py-3 bg-blue-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition duration-200 ease-in-out transform hover:scale-105 mt-6"
+            >
+                Load/Start This Week
+            </button>
+
+            <!-- Expense Input Form (Hidden until week is loaded/started) -->
+            <div id="expense-input-form" class="space-y-4 mt-6 hidden">
+                <!-- Personal Income Section (conditionally shown) -->
+                <div id="personal-income-section" class="space-y-4 hidden">
+                    <h3 class="text-xl font-semibold text-green-700 mb-3">Add Income</h3>
+                    <div>
+                        <label for="income-amount" class="block text-sm font-medium text-gray-700 mb-1">Income Amount ($)</label>
+                        <input
+                            type="number"
+                            id="income-amount"
+                            placeholder="e.g., 500.00"
+                            min="0"
+                            step="0.01"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label for="income-description" class="block text-sm font-medium text-gray-700 mb-1">Income Source</label>
+                        <input
+                            type="text"
+                            id="income-description"
+                            placeholder="e.g., Paycheck, Gift"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label for="income-account-select" class="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                        <select id="income-account-select" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700">
+                            <option value="">-- Select Account --</option>
+                        </select>
+                    </div>
+                    <button
+                        id="add-income-btn"
+                        class="w-full px-6 py-3 bg-green-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition duration-200 ease-in-out transform hover:scale-105"
+                    >
+                        Add Income
+                    </button>
+                </div>
+
+                <h3 class="text-xl font-semibold text-red-700 mb-3">Add Expense</h3>
+                <div>
+                    <label for="expense-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                    <input
+                        type="number"
+                        id="expense-amount"
+                        placeholder="e.g., 15.75"
+                        min="0"
+                        step="0.01"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                    />
+                </div>
+                <div>
+                    <label for="expense-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input
+                        type="text"
+                        id="expense-description"
+                        placeholder="e.g., Coffee, Groceries, Client Lunch"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                    />
+                </div>
+                <div>
+                    <label for="expense-date" class="block text-sm font-medium text-gray-700 mb-1">Specific Date (within selected week)</label>
+                    <input
+                        type="date"
+                        id="expense-date"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                    />
+                </div>
+                <div>
+                    <label for="expense-account-select" class="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                    <select id="expense-account-select" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700">
+                        <option value="">-- Select Account --</option>
+                    </select>
+                </div>
+
+                <!-- Business Specific: Business Name & Incoming/Outgoing for expenses -->
+                <div id="business-expense-options-container" class="space-y-4 hidden">
+                    <div>
+                        <label for="business-name" class="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                        <input
+                            type="text"
+                            id="business-name"
+                            placeholder="e.g., Acme Corp, Freelance Project"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                        <div class="flex space-x-4">
+                            <button
+                                id="type-outgoing-btn"
+                                class="flex-1 px-4 py-2 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out type-btn selected"
+                                data-type="outgoing"
+                            >
+                                Outgoing
+                            </button>
+                            <button
+                                id="type-incoming-expense-btn"
+                                class="flex-1 px-4 py-2 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out type-btn"
+                                data-type="incoming"
+                            >
+                                Incoming
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    id="add-expense-btn"
+                    class="w-full px-6 py-3 bg-red-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-200 ease-in-out transform hover:scale-105"
+                >
+                    Add Expense
+                </button>
+
+                <!-- App Message Display -->
+                <div id="app-message" class="p-3 rounded-lg text-center hidden" role="alert"></div>
+            </div>
+            <button
+                id="cancel-edit-expense-btn"
+                class="w-full px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition duration-200 ease-in-out mt-2 hidden"
+            >
+                Cancel Edit Transaction
+            </button>
+
+
+            <!-- Current Week Expense List -->
+            <div id="current-week-list-section" class="mt-6 hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Expenses for This Week</h3>
+                <ul id="current-week-expense-list" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Current week's expenses will be dynamically added here -->
+                </ul>
+            </div>
+
+            <!-- Current Week Summary -->
+            <div id="current-week-summary-section" class="mt-6 p-4 bg-blue-100 rounded-lg shadow-inner hidden">
+                <h3 class="text-xl font-semibold text-blue-800 mb-3">Current Week Summary</h3>
+                <!-- Personal Summary Rows -->
+                <div id="summary-personal-totals" class="space-y-2 hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Personal Expenses:</span>
+                        <span id="current-week-total-personal" class="font-bold text-red-700">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Personal (Student) Expenses:</span>
+                        <span id="current-week-total-personal-student" class="font-bold text-red-700">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Personal Income:</span>
+                        <span id="current-week-total-personal-income" class="font-bold text-green-700">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Personal Net Balance:</span>
+                        <span id="current-week-net-personal-balance" class="font-bold text-purple-700">$0.00</span>
+                    </div>
+                </div>
+                <!-- Business Summary Rows -->
+                <div id="summary-business-totals" class="space-y-2 hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Business Outgoing Total:</span>
+                        <span id="current-week-total-business-outgoing" class="font-bold text-red-700">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Business Incoming Total:</span>
+                        <span id="current-week-total-business-incoming" class="font-bold text-green-700">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <button
+                id="finalize-week-btn"
+                class="w-full px-6 py-3 bg-purple-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition duration-200 ease-in-out transform hover:scale-105 mt-6 hidden"
+            >
+                Finalize This Week's Log
+            </button>
+            <button
+                id="clear-current-week-btn"
+                class="w-full px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-200 ease-in-out mt-4 hidden"
+            >
+                Clear Current Week's Unsaved Expenses
+            </button>
+        </div>
+
+        <!-- Payment Accounts Section -->
+        <div class="mt-8 p-5 bg-blue-100 rounded-xl shadow-lg space-y-6">
+            <h2 class="text-2xl font-bold text-center text-blue-800 mb-4">Payment Accounts</h2>
+
+            <!-- Add/Edit Account Form -->
+            <div class="space-y-4 p-4 bg-white rounded-lg shadow-inner">
+                <h3 id="account-form-title" class="text-xl font-semibold text-blue-700">Add New Account</h3>
+                <div>
+                    <label for="account-name" class="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
+                    <input
+                        type="text"
+                        id="account-name"
+                        placeholder="e.g., RBC Chequings, Integris Credit Card"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                    <div class="flex space-x-4">
+                        <button
+                            id="account-type-chequings"
+                            class="flex-1 px-4 py-2 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out account-type-btn selected"
+                            data-account-type="Chequings"
+                        >
+                            Chequings
+                        </button>
+                        <button
+                            id="account-type-savings"
+                            class="flex-1 px-4 py-2 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out account-type-btn"
+                            data-account-type="Savings"
+                        >
+                            Savings
+                        </button>
+                        <button
+                            id="account-type-credit-card"
+                            class="flex-1 px-4 py-2 rounded-lg font-semibold shadow-md transition duration-200 ease-in-out account-type-btn"
+                            data-account-type="Credit Card"
+                        >
+                            Credit Card
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label for="account-balance-limit" class="block text-sm font-medium text-gray-700 mb-1">Balance / Limit ($)</label>
+                    <input
+                        type="number"
+                        id="account-balance-limit"
+                        placeholder="e.g., 250.00 (Balance) or 1500.00 (Limit)"
+                        min="0"
+                        step="0.01"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                    />
+                </div>
+                <div id="credit-card-balance-container" class="space-y-2 hidden">
+                    <label for="credit-card-remaining-balance" class="block text-sm font-medium text-gray-700 mb-1">Remaining Balance ($)</label>
+                    <input
+                        type="number"
+                        id="credit-card-remaining-balance"
+                        placeholder="e.g., 1097.53"
+                        min="0"
+                        step="0.01"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                    />
+                </div>
+                <button
+                    id="add-update-account-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white text-lg font-bold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition duration-200 ease-in-out transform hover:scale-105"
+                >
+                    Add Account
+                </button>
+                <button
+                    id="cancel-edit-account-btn"
+                    class="w-full px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition duration-200 ease-in-out mt-2 hidden"
+                >
+                    Cancel Edit
+                </button>
+                <div id="account-message" class="p-3 rounded-lg text-center hidden" role="alert"></div>
+            </div>
+
+            <!-- Account List -->
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold text-blue-800 mb-3">Your Accounts</h3>
+                <ul id="account-list" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Accounts will be dynamically added here -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Expense History Section -->
+        <div class="mt-8 p-5 bg-green-50 rounded-lg shadow-inner space-y-4">
+            <h2 class="text-2xl font-semibold text-green-800 text-center mb-4">Expense History</h2>
+
+            <!-- Sorting Options -->
+            <div class="flex items-center space-x-4 mb-4">
+                <label for="history-sort-by" class="text-gray-700">Sort By:</label>
+                <select id="history-sort-by" class="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700">
+                    <option value="date-desc">Date (Newest First)</option>
+                    <option value="date-asc">Date (Oldest First)</option>
+                    <option value="created-desc">Saved Order (Newest First)</option>
+                    <option value="created-asc">Saved Order (Oldest First)</option>
+                </select>
+            </div>
+
+            <ul id="history-list" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Saved weekly logs will be dynamically added here -->
+            </ul>
+
+            <button
+                id="clear-all-history-btn"
+                class="w-full px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-200 ease-in-out mt-4"
+            >
+                Clear All History
+            </button>
+        </div>
+
+        <!-- Historical Log View Modal -->
+        <div id="history-view-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xl space-y-4 relative">
+                <button id="close-history-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <h2 id="modal-title" class="text-2xl font-bold text-center text-gray-800 mb-4"></h2>
+
+                <!-- Ad Placeholder for history view -->
+                <div id="history-ad-placeholder" class="p-4 bg-yellow-100 rounded-lg text-center text-yellow-800 text-sm mb-4">
+                    Ad Placeholder: Viewing Old Logs. Upgrade for Ad-Free History!
+                </div>
+
+                <ul id="modal-expense-list" class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Expenses for the selected historical log will be displayed here -->
+                </ul>
+
+                <div class="mt-6 p-4 bg-blue-100 rounded-lg shadow-inner">
+                    <h3 class="text-xl font-semibold text-blue-800 mb-3">Historical Week Summary</h3>
+                    <!-- Personal Summary Rows in Modal -->
+                    <div id="modal-summary-personal-totals" class="space-y-2 hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-700">Personal Expenses:</span>
+                            <span id="modal-total-personal" class="font-bold text-red-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-700">Personal (Student) Expenses:</span>
+                            <span id="modal-total-personal-student" class="font-bold text-red-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-700">Personal Income:</span>
+                            <span id="modal-total-personal-income" class="font-bold text-green-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Personal Net Balance:</span>
+                            <span id="modal-net-personal-balance" class="font-bold text-purple-700">$0.00</span>
+                        </div>
+                    </div>
+                    <!-- Business Summary Rows in Modal -->
+                    <div id="modal-summary-business-totals" class="space-y-2 hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-700">Business Outgoing Total:</span>
+                            <span id="modal-total-business-outgoing" class="font-bold text-red-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Business Incoming Total:</span>
+                            <span id="modal-total-business-incoming" class="font-bold text-green-700">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generic Confirmation Modal -->
+        <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm space-y-4 relative">
+                <h3 id="confirm-modal-title" class="text-xl font-bold text-center text-gray-800"></h3>
+                <p id="confirm-modal-message" class="text-gray-700 text-center"></p>
+                <div class="flex justify-center space-x-4 mt-6">
+                    <button id="confirm-modal-cancel-btn" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-semibold">Cancel</button>
+                    <button id="confirm-modal-confirm-btn" class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Ad Placeholder -->
+        <div class="mt-8 p-4 bg-gray-200 rounded-lg text-center text-gray-600 text-sm">
+            <!-- This is where your main ad banner would go -->
+            Ad Placeholder: Main App Banner
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const selectPersonalLogBtn = document.getElementById('select-personal-log-btn');
+        const selectBusinessLogBtn = document.getElementById('select-business-log-btn');
+        const personalSubCategoryContainer = document.getElementById('personal-sub-category-container');
+        const selectStudentBtn = document.getElementById('select-student-btn');
+        const selectNotStudentBtn = document.getElementById('select-not-student-btn');
+
+        const currentWeekSection = document.getElementById('current-week-section');
+        const currentWeekTitle = document.getElementById('current-week-title');
+        const selectYear = document.getElementById('select-year');
+        const selectMonth = document.getElementById('select-month');
+        const selectWeek = document.getElementById('select-week');
+        const loadWeekBtn = document.getElementById('load-week-btn');
+
+        const expenseInputForm = document.getElementById('expense-input-form');
+        const personalIncomeSection = document.getElementById('personal-income-section');
+        const incomeAmountInput = document.getElementById('income-amount');
+        const incomeDescriptionInput = document.getElementById('income-description');
+        const incomeAccountSelect = document.getElementById('income-account-select');
+        const addIncomeBtn = document.getElementById('add-income-btn');
+
+        const expenseAmountInput = document.getElementById('expense-amount');
+        const expenseDescriptionInput = document.getElementById('expense-description');
+        const expenseDateInput = document.getElementById('expense-date');
+        const expenseAccountSelect = document.getElementById('expense-account-select');
+
+        const businessExpenseOptionsContainer = document.getElementById('business-expense-options-container');
+        const businessNameInput = document.getElementById('business-name');
+        const typeOutgoingBtn = document.getElementById('type-outgoing-btn');
+        const typeIncomingExpenseBtn = document.getElementById('type-incoming-expense-btn');
+
+        const addExpenseBtn = document.getElementById('add-expense-btn');
+        const appMessage = document.getElementById('app-message');
+        const cancelEditExpenseBtn = document.getElementById('cancel-edit-expense-btn');
+
+        const currentWeekListSection = document.getElementById('current-week-list-section');
+        const currentWeekExpenseList = document.getElementById('current-week-expense-list');
+        const currentWeekSummarySection = document.getElementById('current-week-summary-section');
+        const finalizeWeekBtn = document.getElementById('finalize-week-btn');
+        const clearCurrentWeekBtn = document.getElementById('clear-current-week-btn');
+
+        const summaryPersonalTotals = document.getElementById('summary-personal-totals');
+        const currentWeekTotalPersonalSpan = document.getElementById('current-week-total-personal');
+        const currentWeekTotalPersonalStudentSpan = document.getElementById('current-week-total-personal-student');
+        const currentWeekTotalPersonalIncomeSpan = document.getElementById('current-week-total-personal-income');
+        const currentWeekNetPersonalBalanceSpan = document.getElementById('current-week-net-personal-balance');
+
+        const summaryBusinessTotals = document.getElementById('summary-business-totals');
+        const currentWeekTotalBusinessOutgoingSpan = document.getElementById('current-week-total-business-outgoing');
+        const currentWeekTotalBusinessIncomingSpan = document.getElementById('current-week-total-business-incoming');
+
+        const historySortBy = document.getElementById('history-sort-by');
+        const historyList = document.getElementById('history-list');
+        const clearAllHistoryBtn = document.getElementById('clear-all-history-btn');
+
+        const historyViewModal = document.getElementById('history-view-modal');
+        const closeHistoryModalBtn = document.getElementById('close-history-modal-btn');
+        const modalTitle = document.getElementById('modal-title');
+        const historyAdPlaceholder = document.getElementById('history-ad-placeholder');
+        const modalExpenseList = document.getElementById('modal-expense-list');
+
+        const modalSummaryPersonalTotals = document.getElementById('modal-summary-personal-totals');
+        const modalTotalPersonalSpan = document.getElementById('modal-total-personal');
+        const modalTotalPersonalStudentSpan = document.getElementById('modal-total-personal-student');
+        const modalTotalPersonalIncomeSpan = document.getElementById('modal-total-personal-income');
+        const modalNetPersonalBalanceSpan = document.getElementById('modal-net-personal-balance');
+
+        const modalSummaryBusinessTotals = document.getElementById('modal-summary-business-totals');
+        const modalTotalBusinessOutgoingSpan = document.getElementById('modal-total-business-outgoing');
+        const modalTotalBusinessIncomingSpan = document.getElementById('modal-total-business-incoming');
+
+        // --- Confirmation Modal Elements ---
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmModalTitle = document.getElementById('confirm-modal-title');
+        const confirmModalMessage = document.getElementById('confirm-modal-message');
+        const confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn');
+        const confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
+
+        // --- Payment Accounts Elements ---
+        const accountFormTitle = document.getElementById('account-form-title');
+        const accountNameInput = document.getElementById('account-name');
+        const accountTypeChequingsBtn = document.getElementById('account-type-chequings');
+        const accountTypeSavingsBtn = document.getElementById('account-type-savings');
+        const accountTypeCreditCardBtn = document.getElementById('account-type-credit-card');
+        const accountBalanceLimitInput = document.getElementById('account-balance-limit');
+        const creditCardBalanceContainer = document.getElementById('credit-card-balance-container');
+        const creditCardRemainingBalanceInput = document.getElementById('credit-card-remaining-balance');
+        const addUpdateAccountBtn = document.getElementById('add-update-account-btn');
+        const cancelEditAccountBtn = document.getElementById('cancel-edit-account-btn');
+        const accountMessage = document.getElementById('account-message');
+        const accountList = document.getElementById('account-list');
+
+
+        let currentConfirmCallback = null;
+
+        // --- Global State Variables ---
+        let allWeeklyLogs = [];
+        let activeWeeklyLog = null;
+        let currentWeekExpenses = [];
+        let currentLogType = null;
+        let currentIsStudent = null;
+        let selectedBusinessType = 'outgoing';
+
+        let allPaymentAccounts = [];
+        let selectedAccountType = 'Chequings';
+        let editingAccountId = null;
+
+        let editingExpenseId = null;
+
+
+        // --- Helper Functions ---
+
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function getMonthName(monthIndex) {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            return months[monthIndex];
+        }
+
+        function getWeekStartEndDates(weekNumber, monthIndex, year) {
+            const firstDayOfMonth = new Date(year, monthIndex, 1);
+            const lastDayOfMonth = new Date(year, monthIndex + 1, 0);
+            let startDay, endDay;
+
+            if (weekNumber === 1) {
+                startDay = 1;
+                endDay = 7;
+            } else if (weekNumber === 2) {
+                startDay = 8;
+                endDay = 14;
+            } else if (weekNumber === 3) {
+                startDay = 15;
+                endDay = 21;
+            } else if (weekNumber === 4) {
+                startDay = 22;
+                endDay = 28;
+            } else if (weekNumber === 5) {
+                startDay = 29;
+                endDay = lastDayOfMonth.getDate();
+            } else {
+                return null;
+            }
+
+            endDay = Math.min(endDay, lastDayOfMonth.getDate());
+
+            const startDate = new Date(year, monthIndex, startDay);
+            const endDate = new Date(year, monthIndex, endDay);
+            endDate.setHours(23, 59, 59, 999);
+
+            return { start: startDate, end: endDate };
+        }
+
+        function getWeekPeriodString(weekNumber, monthIndex, year) {
+            const weekDates = getWeekStartEndDates(weekNumber, monthIndex, year);
+            if (!weekDates) return `Week ${weekNumber}`;
+
+            const startDay = weekDates.start.getDate();
+            const endDay = weekDates.end.getDate();
+            return `Week ${weekNumber} (${startDay}-${endDay})`;
+        }
+
+        function populateDateDropdowns() {
+            const currentYear = new Date().getFullYear();
+            selectYear.innerHTML = '';
+            for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                selectYear.appendChild(option);
+            }
+            selectYear.value = currentYear;
+
+            selectMonth.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = getMonthName(i);
+                selectMonth.appendChild(option);
+            }
+            selectMonth.value = new Date().getMonth();
+
+            selectWeek.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = getWeekPeriodString(i, parseInt(selectMonth.value), parseInt(selectYear.value));
+                selectWeek.appendChild(option);
+            }
+            const today = new Date();
+            const currentDayOfMonth = today.getDate();
+            let defaultWeek = 1;
+            if (currentDayOfMonth >= 29) {
+                defaultWeek = 5;
+            } else if (currentDayOfMonth >= 22) {
+                defaultWeek = 4;
+            } else if (currentDayOfMonth >= 15) {
+                defaultWeek = 3;
+            } else if (currentDayOfMonth >= 8) {
+                defaultWeek = 2;
+            }
+            selectWeek.value = defaultWeek;
+
+            setDefaultExpenseDate();
+        }
+
+        function setDefaultExpenseDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            expenseDateInput.value = `${year}-${month}-${day}`;
+        }
+
+        // --- Local Storage Management ---
+
+        function saveAllWeeklyLogs() {
+            localStorage.setItem('weeklyExpenseTrackerLogs', JSON.stringify(allWeeklyLogs));
+        }
+
+        function loadAllWeeklyLogs() {
+            const storedLogs = localStorage.getItem('weeklyExpenseTrackerLogs');
+            if (storedLogs) {
+                allWeeklyLogs = JSON.parse(storedLogs);
+            } else {
+                allWeeklyLogs = [];
+            }
+            renderHistoryList();
+        }
+
+        function saveAllPaymentAccounts() {
+            localStorage.setItem('paymentAccounts', JSON.stringify(allPaymentAccounts));
+        }
+
+        function loadAllPaymentAccounts() {
+            const storedAccounts = localStorage.getItem('paymentAccounts');
+            if (storedAccounts) {
+                allPaymentAccounts = JSON.parse(storedAccounts);
+            } else {
+                allPaymentAccounts = [];
+            }
+            renderAccountList();
+            populateAccountDropdowns();
+        }
+
+        // --- UI Rendering Functions ---
+
+        function showMessage(message, type = 'error', targetElement = appMessage) {
+            targetElement.textContent = message;
+            targetElement.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-blue-100', 'text-blue-800');
+            if (type === 'error') {
+                targetElement.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'success') {
+                targetElement.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'info') {
+                targetElement.classList.add('bg-blue-100', 'text-blue-800');
+            } else if (type === 'warning') {
+                targetElement.classList.add('bg-yellow-100', 'text-yellow-800');
+            }
+            targetElement.classList.remove('hidden');
+
+            setTimeout(() => {
+                targetElement.classList.add('hidden');
+            }, 5000);
+        }
+
+        function renderExpenseItem(item, parentList, isDeletable = true) {
+            const listItem = document.createElement('li');
+            listItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm';
+
+            const formattedAmount = `$${parseFloat(item.amount).toFixed(2)}`;
+            let typeLabel = '';
+            let amountColorClass = '';
+
+            if (item.type === 'income') {
+                typeLabel = 'Income';
+                amountColorClass = 'text-green-600';
+            } else {
+                typeLabel = 'Expense';
+                amountColorClass = 'text-red-600';
+            }
+
+            let categorySpecifics = '';
+            if (item.category === 'personal') {
+                categorySpecifics = item.isStudent ? 'Personal (Student)' : 'Personal (Non-Student)';
+            } else if (item.category === 'business') {
+                categorySpecifics = `Business (${item.businessName || 'N/A'})`;
+                if (item.type === 'incoming') {
+                    typeLabel = 'Incoming';
+                    amountColorClass = 'text-green-600';
+                } else {
+                    typeLabel = 'Outgoing';
+                    amountColorClass = 'text-red-600';
+                }
+            }
+
+            const accountName = item.accountId ? (allPaymentAccounts.find(acc => acc.id === item.accountId)?.name || 'Unknown Account') : '';
+            const accountDisplay = accountName ? ` | Account: ${accountName}` : '';
+
+            listItem.innerHTML = `
+                <div class="flex-1 mr-4">
+                    <p class="text-lg font-medium text-gray-800">${item.description}</p>
+                    <p class="text-sm text-gray-500">${item.date} | ${categorySpecifics} | ${typeLabel}${accountDisplay}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg font-bold ${amountColorClass}">${formattedAmount}</span>
+                    ${isDeletable ? `
+                        <button class="edit-item-btn p-1 rounded-full hover:bg-gray-200" data-id="${item.id}" title="Edit item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L7.5 21H3v-4.5L15.232 5.232z" />
+                            </svg>
+                        </button>
+                        <button class="delete-item-btn p-1 rounded-full hover:bg-gray-200" data-id="${item.id}" title="Remove item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            parentList.appendChild(listItem);
+
+            if (isDeletable) {
+                listItem.querySelector('.edit-item-btn').addEventListener('click', (event) => {
+                    const idToEdit = event.currentTarget.dataset.id;
+                    startEditExpense(idToEdit);
+                });
+
+                listItem.querySelector('.delete-item-btn').addEventListener('click', (event) => {
+                    const idToRemove = event.currentTarget.dataset.id;
+                    const itemToRemove = currentWeekExpenses.find(exp => exp.id === idToRemove);
+                    if (itemToRemove && itemToRemove.accountId) {
+                        const account = allPaymentAccounts.find(acc => acc.id === itemToRemove.accountId);
+                        if (account) {
+                            const amount = parseFloat(itemToRemove.amount);
+                            if (itemToRemove.type === 'income') {
+                                account.balanceLimit = (parseFloat(account.balanceLimit) - amount).toFixed(2);
+                            } else {
+                                if (account.type === 'Credit Card') {
+                                    account.remainingBalance = (parseFloat(account.remainingBalance) - amount).toFixed(2);
+                                } else {
+                                    account.balanceLimit = (parseFloat(account.balanceLimit) + amount).toFixed(2);
+                                }
+                            }
+                            saveAllPaymentAccounts();
+                            renderAccountList();
+                        }
+                    }
+
+                    currentWeekExpenses = currentWeekExpenses.filter(exp => exp.id !== idToRemove);
+                    updateActiveLogExpenses();
+                    renderCurrentWeekExpenses();
+                    updateCurrentWeekSummary();
+                });
+            }
+        }
+
+        function renderCurrentWeekExpenses() {
+            currentWeekExpenseList.innerHTML = '';
+            const sortedItems = [...currentWeekExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+            sortedItems.forEach(item => renderExpenseItem(item, currentWeekExpenseList, true));
+        }
+
+        function updateCurrentWeekSummary() {
+            let totalPersonalExpenses = 0;
+            let totalPersonalStudentExpenses = 0;
+            let totalPersonalIncome = 0;
+            let totalBusinessOutgoing = 0;
+            let totalBusinessIncoming = 0;
+
+            currentWeekExpenses.forEach(item => {
+                const amount = parseFloat(item.amount);
+                if (item.category === 'personal') {
+                    if (item.type === 'income') {
+                        totalPersonalIncome += amount;
+                    } else {
+                        totalPersonalExpenses += amount;
+                        if (item.isStudent) {
+                            totalPersonalStudentExpenses += amount;
+                        }
+                    }
+                } else if (item.category === 'business') {
+                    if (item.type === 'outgoing') {
+                        totalBusinessOutgoing += amount;
+                    } else {
+                        totalBusinessIncoming += amount;
+                    }
+                }
+            });
+
+            currentWeekTotalPersonalSpan.textContent = `$${totalPersonalExpenses.toFixed(2)}`;
+            currentWeekTotalPersonalStudentSpan.textContent = `$${totalPersonalStudentExpenses.toFixed(2)}`;
+            currentWeekTotalPersonalIncomeSpan.textContent = `$${totalPersonalIncome.toFixed(2)}`;
+            currentWeekNetPersonalBalanceSpan.textContent = `$${(totalPersonalIncome - totalPersonalExpenses).toFixed(2)}`;
+            currentWeekTotalBusinessOutgoingSpan.textContent = `$${totalBusinessOutgoing.toFixed(2)}`;
+            currentWeekTotalBusinessIncomingSpan.textContent = `$${totalBusinessIncoming.toFixed(2)}`;
+
+            if (currentLogType === 'personal') {
+                summaryPersonalTotals.classList.remove('hidden');
+                summaryBusinessTotals.classList.add('hidden');
+            } else if (currentLogType === 'business') {
+                summaryPersonalTotals.classList.add('hidden');
+                summaryBusinessTotals.classList.remove('hidden');
+            } else {
+                summaryPersonalTotals.classList.add('hidden');
+                summaryBusinessTotals.classList.add('hidden');
+            }
+        }
+
+        function renderHistoryList() {
+            historyList.innerHTML = '';
+            let logsToRender = [...allWeeklyLogs];
+
+            const sortBy = historySortBy.value;
+
+            if (sortBy === 'date-desc') {
+                logsToRender.sort((a, b) => {
+                    if (b.year !== a.year) return b.year - a.year;
+                    if (b.month !== a.month) return b.month - a.month;
+                    return b.week - a.week;
+                });
+            } else if (sortBy === 'date-asc') {
+                logsToRender.sort((a, b) => {
+                    if (a.year !== b.year) return a.year - b.year;
+                    if (a.month !== b.month) return a.month - b.month;
+                    return a.week - b.week;
+                });
+            } else if (sortBy === 'created-desc') {
+                logsToRender.sort((a, b) => b.createdAt - a.createdAt);
+            } else if (sortBy === 'created-asc') {
+                logsToRender.sort((a, b) => a.createdAt - b.createdAt);
+            }
+
+            logsToRender.forEach(log => {
+                const listItem = document.createElement('li');
+                listItem.className = 'flex items-center justify-between p-3 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-100 transition duration-150 ease-in-out';
+                listItem.dataset.logId = log.id;
+
+                let logTypeLabel = log.category.charAt(0).toUpperCase() + log.category.slice(1);
+                if (log.category === 'personal') {
+                    logTypeLabel += log.isStudent ? ' (Student)' : ' (Non-Student)';
+                }
+
+                const weekPeriod = getWeekPeriodString(log.week, log.month, log.year);
+                listItem.innerHTML = `
+                    <span class="text-lg font-medium text-gray-800">${logTypeLabel} Log: ${getMonthName(log.month)} ${log.year}, ${weekPeriod}</span>
+                    <button class="view-log-btn px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600">View</button>
+                `;
+                historyList.appendChild(listItem);
+            });
+
+            historyList.querySelectorAll('.view-log-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const logId = event.currentTarget.closest('li').dataset.logId;
+                    viewHistoricalLog(logId);
+                });
+            });
+        }
+
+        function viewHistoricalLog(logId) {
+            const log = allWeeklyLogs.find(l => l.id === logId);
+            if (!log) {
+                console.error("Historical log not found.");
+                return;
+            }
+
+            historyAdPlaceholder.classList.remove('hidden');
+
+            let modalLogTypeLabel = log.category.charAt(0).toUpperCase() + log.category.slice(1);
+            if (log.category === 'personal') {
+                modalLogTypeLabel += log.isStudent ? ' (Student)' : ' (Non-Student)';
+            }
+            modalTitle.textContent = `${modalLogTypeLabel} Log: ${getMonthName(log.month)} ${log.year}, ${getWeekPeriodString(log.week, log.month, log.year)}`;
+            modalExpenseList.innerHTML = '';
+
+            let totalPersonalExpenses = 0;
+            let totalPersonalStudentExpenses = 0;
+            let totalPersonalIncome = 0;
+            let totalBusinessOutgoing = 0;
+            let totalBusinessIncoming = 0;
+
+            const sortedLogItems = [...log.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedLogItems.forEach(item => {
+                renderExpenseItem(item, modalExpenseList, false);
+                const amount = parseFloat(item.amount);
+                if (item.category === 'personal') {
+                    if (item.type === 'income') {
+                        totalPersonalIncome += amount;
+                    } else {
+                        totalPersonalExpenses += amount;
+                        if (item.isStudent) {
+                            totalPersonalStudentExpenses += amount;
+                        }
+                    }
+                } else if (item.category === 'business') {
+                    if (item.type === 'outgoing') {
+                        totalBusinessOutgoing += amount;
+                    } else {
+                        totalBusinessIncoming += amount;
+                    }
+                }
+            });
+
+            modalTotalPersonalSpan.textContent = `$${totalPersonalExpenses.toFixed(2)}`;
+            modalTotalPersonalStudentSpan.textContent = `$${totalPersonalStudentExpenses.toFixed(2)}`;
+            modalTotalPersonalIncomeSpan.textContent = `$${totalPersonalIncome.toFixed(2)}`;
+            modalNetPersonalBalanceSpan.textContent = `$${(totalPersonalIncome - totalPersonalExpenses).toFixed(2)}`;
+            modalTotalBusinessOutgoingSpan.textContent = `$${totalBusinessOutgoing.toFixed(2)}`;
+            modalTotalBusinessIncomingSpan.textContent = `$${totalBusinessIncoming.toFixed(2)}`;
+
+            if (log.category === 'personal') {
+                modalSummaryPersonalTotals.classList.remove('hidden');
+                modalSummaryBusinessTotals.classList.add('hidden');
+            } else if (log.category === 'business') {
+                modalSummaryPersonalTotals.classList.add('hidden');
+                modalSummaryBusinessTotals.classList.remove('hidden');
+            } else {
+                modalSummaryPersonalTotals.classList.add('hidden');
+                modalSummaryBusinessTotals.classList.add('hidden');
+            }
+
+            historyViewModal.classList.remove('hidden');
+        }
+
+        // --- Confirmation Modal Functions ---
+        function showConfirmModal(title, message, onConfirmCallback) {
+            confirmModalTitle.textContent = title;
+            confirmModalMessage.textContent = message;
+            currentConfirmCallback = onConfirmCallback;
+            confirmModal.classList.remove('hidden');
+        }
+
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+            currentConfirmCallback = null;
+        }
+
+        // --- Core Logic Functions ---
+
+        function selectLogType(type) {
+            currentLogType = type;
+            selectPersonalLogBtn.classList.remove('selected');
+            selectBusinessLogBtn.classList.remove('selected');
+            if (type === 'personal') {
+                selectPersonalLogBtn.classList.add('selected');
+                personalSubCategoryContainer.classList.remove('hidden');
+            } else {
+                selectBusinessLogBtn.classList.add('selected');
+                personalSubCategoryContainer.classList.add('hidden');
+                currentIsStudent = null;
+            }
+            selectStudentBtn.classList.remove('selected');
+            selectNotStudentBtn.classList.remove('selected');
+
+            activeWeeklyLog = null;
+            currentWeekExpenses = [];
+            renderCurrentWeekExpenses();
+            updateCurrentWeekSummary();
+            updateCurrentWeekUI();
+        }
+
+        function selectPersonalSubCategory(isStudent) {
+            currentIsStudent = isIsStudent;
+            selectStudentBtn.classList.remove('selected');
+            selectNotStudentBtn.classList.remove('selected');
+            if (isStudent) {
+                selectStudentBtn.classList.add('selected');
+            } else {
+                selectNotStudentBtn.classList.add('selected');
+            }
+            activeWeeklyLog = null;
+            currentWeekExpenses = [];
+            renderCurrentWeekExpenses();
+            updateCurrentWeekSummary();
+            updateCurrentWeekUI();
+        }
+
+        function updateCurrentWeekUI() {
+            resetExpenseForm(); // Reset the form to a clean slate before deciding what to show
+
+            if (currentLogType === null || (currentLogType === 'personal' && currentIsStudent === null)) {
+                currentWeekSection.classList.add('hidden');
+                expenseInputForm.classList.add('hidden');
+                return;
+            }
+
+            currentWeekSection.classList.remove('hidden');
+            expenseInputForm.classList.remove('hidden');
+
+            let titleText = '';
+            if (currentLogType === 'personal') {
+                titleText = `Personal (${currentIsStudent ? 'Student' : 'Non-Student'}) Log`;
+                personalIncomeSection.classList.remove('hidden');
+                businessExpenseOptionsContainer.classList.add('hidden');
+                document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.remove('hidden');
+                addExpenseBtn.classList.remove('hidden');
+                addIncomeBtn.classList.remove('hidden');
+            } else {
+                titleText = 'Business Log';
+                personalIncomeSection.classList.add('hidden');
+                businessExpenseOptionsContainer.classList.remove('hidden');
+                document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.remove('hidden');
+                addExpenseBtn.classList.remove('hidden');
+                addIncomeBtn.classList.add('hidden');
+            }
+            currentWeekTitle.textContent = titleText;
+            populateDateDropdowns();
+        }
+
+        function loadOrStartWeek() {
+            const selectedYear = parseInt(selectYear.value);
+            const selectedMonth = parseInt(selectMonth.value);
+            const selectedWeek = parseInt(selectWeek.value);
+
+            activeWeeklyLog = allWeeklyLogs.find(log =>
+                log.year === selectedYear &&
+                log.month === selectedMonth &&
+                log.week === selectedWeek &&
+                log.category === currentLogType &&
+                (currentLogType === 'business' || log.isStudent === currentIsStudent)
+            );
+
+            if (activeWeeklyLog) {
+                currentWeekExpenses = [...activeWeeklyLog.expenses];
+                showMessage("Existing log loaded for this week. You can add/edit expenses.", 'info');
+            } else {
+                currentWeekExpenses = [];
+                showMessage("Starting a new log for this week. Add your expenses!", 'info');
+            }
+
+            expenseInputForm.classList.remove('hidden');
+            currentWeekListSection.classList.remove('hidden');
+            currentWeekSummarySection.classList.remove('hidden');
+            finalizeWeekBtn.classList.remove('hidden');
+            clearCurrentWeekBtn.classList.remove('hidden');
+
+            renderCurrentWeekExpenses();
+            updateCurrentWeekSummary();
+            setDefaultExpenseDate();
+            populateAccountDropdowns();
+            resetExpenseForm();
+        }
+
+        function updateActiveLogExpenses() {
+            if (activeWeeklyLog) {
+                activeWeeklyLog.expenses = [...currentWeekExpenses];
+                saveAllWeeklyLogs();
+                renderHistoryList();
+            }
+        }
+
+        // --- Payment Accounts Functions ---
+
+        function selectAccountType(type) {
+            selectedAccountType = type;
+            accountTypeChequingsBtn.classList.remove('selected');
+            accountTypeSavingsBtn.classList.remove('selected');
+            accountTypeCreditCardBtn.classList.remove('selected');
+
+            if (type === 'Chequings') {
+                accountTypeChequingsBtn.classList.add('selected');
+                creditCardBalanceContainer.classList.add('hidden');
+            } else if (type === 'Savings') {
+                accountTypeSavingsBtn.classList.add('selected');
+                creditCardBalanceContainer.classList.add('hidden');
+            } else if (type === 'Credit Card') {
+                accountTypeCreditCardBtn.classList.add('selected');
+                creditCardBalanceContainer.classList.remove('hidden');
+            }
+        }
+
+        function addUpdateAccount() {
+            const name = accountNameInput.value.trim();
+            const balanceLimit = parseFloat(accountBalanceLimitInput.value);
+            const remainingBalance = parseFloat(creditCardRemainingBalanceInput.value);
+
+            if (name === '') {
+                showMessage("Please enter an account name.", 'error', accountMessage);
+                return;
+            }
+            if (isNaN(balanceLimit) || balanceLimit < 0) {
+                showMessage("Please enter a valid balance or limit.", 'error', accountMessage);
+                return;
+            }
+            if (selectedAccountType === 'Credit Card' && (isNaN(remainingBalance) || remainingBalance < 0)) {
+                showMessage("Please enter a valid remaining balance for credit card.", 'error', accountMessage);
+                return;
+            }
+            if (selectedAccountType === 'Credit Card' && remainingBalance > balanceLimit) {
+                 showMessage("Remaining balance cannot be greater than the credit limit.", 'error', accountMessage);
+                 return;
+            }
+
+
+            if (editingAccountId) {
+                const accountIndex = allPaymentAccounts.findIndex(acc => acc.id === editingAccountId);
+                if (accountIndex > -1) {
+                    allPaymentAccounts[accountIndex] = {
+                        ...allPaymentAccounts[accountIndex],
+                        name: name,
+                        type: selectedAccountType,
+                        balanceLimit: balanceLimit.toFixed(2),
+                        remainingBalance: selectedAccountType === 'Credit Card' ? remainingBalance.toFixed(2) : null
+                    };
+                    showMessage("Account updated successfully!", 'success', accountMessage);
+                }
+            } else {
+                const newAccount = {
+                    id: generateUniqueId(),
+                    name: name,
+                    type: selectedAccountType,
+                    balanceLimit: balanceLimit.toFixed(2),
+                    remainingBalance: selectedAccountType === 'Credit Card' ? remainingBalance.toFixed(2) : null
+                };
+                allPaymentAccounts.push(newAccount);
+                showMessage("Account added successfully!", 'success', accountMessage);
+            }
+
+            saveAllPaymentAccounts();
+            renderAccountList();
+            resetAccountForm();
+            populateAccountDropdowns();
+        }
+
+        function editAccount(id) {
+            const accountToEdit = allPaymentAccounts.find(acc => acc.id === id);
+            if (accountToEdit) {
+                editingAccountId = id;
+                accountNameInput.value = accountToEdit.name;
+                accountBalanceLimitInput.value = accountToEdit.balanceLimit;
+                selectAccountType(accountToEdit.type);
+                if (accountToEdit.type === 'Credit Card' && accountToEdit.remainingBalance !== null) {
+                    creditCardRemainingBalanceInput.value = accountToEdit.remainingBalance;
+                } else {
+                    creditCardRemainingBalanceInput.value = '';
+                }
+
+                accountFormTitle.textContent = 'Edit Account';
+                addUpdateAccountBtn.textContent = 'Update Account';
+                cancelEditAccountBtn.classList.remove('hidden');
+            }
+        }
+
+        function deleteAccount(id) {
+            showConfirmModal(
+                "Delete Account?",
+                "Are you sure you want to delete this account? This cannot be undone.",
+                () => {
+                    allPaymentAccounts = allPaymentAccounts.filter(acc => acc.id !== id);
+                    saveAllPaymentAccounts();
+                    renderAccountList();
+                    showMessage("Account deleted successfully!", 'success', accountMessage);
+                    resetAccountForm();
+                    populateAccountDropdowns();
+                }
+            );
+        }
+
+        function renderAccountList() {
+            accountList.innerHTML = '';
+            if (allPaymentAccounts.length === 0) {
+                const noAccountsMsg = document.createElement('li');
+                noAccountsMsg.className = 'p-3 text-gray-500 text-center';
+                noAccountsMsg.textContent = 'No accounts added yet.';
+                accountList.appendChild(noAccountsMsg);
+                return;
+            }
+
+            allPaymentAccounts.forEach(account => {
+                const listItem = document.createElement('li');
+                listItem.className = 'flex flex-col md:flex-row items-start md:items-center justify-between p-3 bg-white rounded-lg shadow-sm';
+
+                let balanceDisplay = `$${parseFloat(account.balanceLimit).toFixed(2)}`;
+                let additionalInfo = '';
+
+                if (account.type === 'Credit Card') {
+                    additionalInfo = ` | Remaining: $${parseFloat(account.remainingBalance).toFixed(2)}`;
+                }
+
+                listItem.innerHTML = `
+                    <div class="flex-1 mb-2 md:mb-0">
+                        <p class="text-lg font-medium text-gray-800">${account.name} <span class="text-sm text-gray-500">(${account.type})</span></p>
+                        <p class="text-md text-gray-700">Balance/Limit: <span class="font-bold">${balanceDisplay}</span>${additionalInfo}</p>
+                    </div>
+                    <div class="flex space-x-2 mt-2 md:mt-0">
+                        <button class="edit-account-btn px-3 py-1 bg-yellow-500 text-white text-sm rounded-md hover:bg-yellow-600" data-id="${account.id}">Edit</button>
+                        <button class="delete-account-btn px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600" data-id="${account.id}">Delete</button>
+                    </div>
+                `;
+                accountList.appendChild(listItem);
+            });
+
+            accountList.querySelectorAll('.edit-account-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    editAccount(event.target.dataset.id);
+                });
+            });
+            accountList.querySelectorAll('.delete-account-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    deleteAccount(event.target.dataset.id);
+                });
+            });
+        }
+
+        function resetAccountForm() {
+            editingAccountId = null;
+            accountNameInput.value = '';
+            accountBalanceLimitInput.value = '';
+            creditCardRemainingBalanceInput.value = '';
+            selectAccountType('Chequings');
+            accountFormTitle.textContent = 'Add New Account';
+            addUpdateAccountBtn.textContent = 'Add Account';
+            cancelEditAccountBtn.classList.add('hidden');
+            accountMessage.classList.add('hidden');
+        }
+
+        function populateAccountDropdowns() {
+            incomeAccountSelect.innerHTML = '<option value="">-- Select Account --</option>';
+            expenseAccountSelect.innerHTML = '<option value="">-- Select Account --</option>';
+
+            allPaymentAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.name} (${account.type})`;
+                incomeAccountSelect.appendChild(option.cloneNode(true));
+                expenseAccountSelect.appendChild(option);
+            });
+        }
+
+        // --- Expense/Income Edit Functions ---
+        function startEditExpense(id) {
+            const itemToEdit = currentWeekExpenses.find(item => item.id === id);
+            if (!itemToEdit) {
+                showMessage("Item not found for editing.", 'error');
+                return;
+            }
+
+            editingExpenseId = id;
+
+            // 1. Reset the form to a clean state
+            resetExpenseForm();
+
+            // 2. Set the global log type and sub-category variables directly
+            currentLogType = itemToEdit.category;
+            currentIsStudent = itemToEdit.isStudent;
+
+            // 3. Manually update the selected classes for the category and sub-category buttons
+            selectPersonalLogBtn.classList.remove('selected');
+            selectBusinessLogBtn.classList.remove('selected');
+            if (currentLogType === 'personal') {
+                selectPersonalLogBtn.classList.add('selected');
+                personalSubCategoryContainer.classList.remove('hidden');
+                selectStudentBtn.classList.remove('selected');
+                selectNotStudentBtn.classList.remove('selected');
+                if (currentIsStudent) {
+                    selectStudentBtn.classList.add('selected');
+                } else {
+                    selectNotStudentBtn.classList.add('selected');
+                }
+            } else { // Business
+                selectBusinessLogBtn.classList.add('selected');
+                personalSubCategoryContainer.classList.add('hidden');
+            }
+
+            // 4. Ensure the main expense input form container is visible
+            expenseInputForm.classList.remove('hidden');
+
+            // 5. Populate fields and set button texts based on item type and category
+            if (itemToEdit.type === 'income') {
+                personalIncomeSection.classList.remove('hidden');
+                document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.add('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.add('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.add('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.add('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.add('hidden');
+                addExpenseBtn.classList.add('hidden');
+
+                addIncomeBtn.classList.remove('hidden');
+                addIncomeBtn.textContent = 'Update Income';
+
+                incomeAmountInput.value = parseFloat(itemToEdit.amount);
+                incomeDescriptionInput.value = itemToEdit.description;
+                incomeAccountSelect.value = itemToEdit.accountId || '';
+                expenseDateInput.value = itemToEdit.date;
+            } else { // It's an expense (personal or business outgoing/incoming)
+                personalIncomeSection.classList.add('hidden');
+                businessExpenseOptionsContainer.classList.add('hidden');
+
+                document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.remove('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.remove('hidden');
+                addIncomeBtn.classList.add('hidden');
+
+                addExpenseBtn.classList.remove('hidden');
+                addExpenseBtn.textContent = 'Update Expense';
+
+                expenseAmountInput.value = parseFloat(itemToEdit.amount);
+                expenseDescriptionInput.value = itemToEdit.description;
+                expenseDateInput.value = itemToEdit.date;
+                expenseAccountSelect.value = itemToEdit.accountId || '';
+
+                if (itemToEdit.category === 'business') {
+                    businessExpenseOptionsContainer.classList.remove('hidden');
+                    businessNameInput.value = itemToEdit.businessName || '';
+                    selectedBusinessType = itemToEdit.type;
+                    typeOutgoingBtn.classList.remove('selected');
+                    typeIncomingExpenseBtn.classList.remove('selected');
+                    if (selectedBusinessType === 'outgoing') {
+                        typeOutgoingBtn.classList.add('selected');
+                    } else {
+                        typeIncomingExpenseBtn.classList.add('selected');
+                    }
+                }
+            }
+            cancelEditExpenseBtn.classList.remove('hidden');
+        }
+
+
+        function resetExpenseForm() {
+            editingExpenseId = null;
+            incomeAmountInput.value = '';
+            incomeDescriptionInput.value = '';
+            incomeAccountSelect.value = '';
+            expenseAmountInput.value = '';
+            expenseDescriptionInput.value = '';
+            expenseDateInput.value = '';
+            expenseAccountSelect.value = '';
+            businessNameInput.value = '';
+            selectedBusinessType = 'outgoing';
+            typeOutgoingBtn.classList.add('selected');
+            typeIncomingExpenseBtn.classList.remove('selected');
+
+            addIncomeBtn.textContent = 'Add Income';
+            addExpenseBtn.textContent = 'Add Expense';
+            cancelEditExpenseBtn.classList.add('hidden');
+            appMessage.classList.add('hidden');
+
+            personalIncomeSection.classList.add('hidden');
+            businessExpenseOptionsContainer.classList.add('hidden');
+            document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.add('hidden');
+            document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.add('hidden');
+            document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.add('hidden');
+            document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.add('hidden');
+            document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.add('hidden');
+            addExpenseBtn.classList.add('hidden');
+            addIncomeBtn.classList.add('hidden');
+        }
+
+
+        // --- Event Listeners ---
+
+        selectPersonalLogBtn.addEventListener('click', () => selectLogType('personal'));
+        selectBusinessLogBtn.addEventListener('click', () => selectLogType('business'));
+
+        selectStudentBtn.addEventListener('click', () => selectPersonalSubCategory(true));
+        selectNotStudentBtn.addEventListener('click', () => selectPersonalSubCategory(false));
+
+        loadWeekBtn.addEventListener('click', loadOrStartWeek);
+
+        selectYear.addEventListener('change', populateDateDropdowns);
+        selectMonth.addEventListener('change', populateDateDropdowns);
+
+        typeOutgoingBtn.addEventListener('click', () => {
+            selectedBusinessType = 'outgoing';
+            typeOutgoingBtn.classList.add('selected');
+            typeIncomingExpenseBtn.classList.remove('selected');
+        });
+        typeIncomingExpenseBtn.addEventListener('click', () => {
+            selectedBusinessType = 'incoming';
+            typeIncomingExpenseBtn.classList.add('selected');
+            typeOutgoingBtn.classList.remove('selected');
+        });
+
+        addIncomeBtn.addEventListener('click', () => {
+            const amount = incomeAmountInput.value;
+            const description = incomeDescriptionInput.value.trim();
+            const date = expenseDateInput.value;
+            const accountId = incomeAccountSelect.value;
+
+            if (amount === '' || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+                showMessage("Please enter a valid income amount.", 'error');
+                return;
+            }
+            if (description === '') {
+                showMessage("Please enter an income source.", 'error');
+                return;
+            }
+            if (date === '') {
+                showMessage("Please select a date for income.", 'error');
+                return;
+            }
+            if (accountId === '') {
+                showMessage("Please select an account for this income.", 'error');
+                return;
+            }
+
+            const selectedYear = parseInt(selectYear.value);
+            const selectedMonth = parseInt(selectMonth.value);
+            const selectedWeekNum = parseInt(selectWeek.value);
+            const itemDateObj = new Date(date + 'T00:00:00');
+            const weekRange = getWeekStartEndDates(selectedWeekNum, selectedMonth, selectedYear);
+
+            if (!weekRange || itemDateObj < weekRange.start || itemDateObj > weekRange.end) {
+                showMessage(`The selected date (${date}) does not fall within the selected week period: ${getWeekPeriodString(selectedWeekNum, selectedMonth, selectedYear)} of ${getMonthName(selectedMonth)} ${selectedYear}. Please choose a date within the selected week.`, 'error');
+                return;
+            }
+
+            const newAmount = parseFloat(amount).toFixed(2);
+            const newAccountId = accountId;
+            const newDescription = description;
+            const newDate = date;
+
+            if (editingExpenseId) {
+                const itemIndex = currentWeekExpenses.findIndex(item => item.id === editingExpenseId);
+                if (itemIndex > -1) {
+                    const originalItem = currentWeekExpenses[itemIndex];
+                    const originalAmount = parseFloat(originalItem.amount);
+                    const originalAccountId = originalItem.accountId;
+
+                    const originalAccount = allPaymentAccounts.find(acc => acc.id === originalAccountId);
+                    if (originalAccount) {
+                        originalAccount.balanceLimit = (parseFloat(originalAccount.balanceLimit) - originalAmount).toFixed(2);
+                    }
+
+                    originalItem.amount = newAmount;
+                    originalItem.description = newDescription;
+                    originalItem.date = newDate;
+                    originalItem.accountId = newAccountId;
+
+                    const newAccount = allPaymentAccounts.find(acc => acc.id === newAccountId);
+                    if (newAccount) {
+                        newAccount.balanceLimit = (parseFloat(newAccount.balanceLimit) + parseFloat(newAmount)).toFixed(2);
+                    }
+                    saveAllPaymentAccounts();
+                    showMessage("Income updated successfully!", 'success');
+                }
+            } else {
+                const selectedAccount = allPaymentAccounts.find(acc => acc.id === accountId);
+                if (selectedAccount) {
+                    selectedAccount.balanceLimit = (parseFloat(selectedAccount.balanceLimit) + parseFloat(amount)).toFixed(2);
+                    saveAllPaymentAccounts();
+                }
+
+                const newIncome = {
+                    id: generateUniqueId(),
+                    amount: newAmount,
+                    description: newDescription,
+                    date: newDate,
+                    category: 'personal',
+                    isStudent: currentIsStudent,
+                    type: 'income',
+                    accountId: newAccountId
+                };
+                currentWeekExpenses.push(newIncome);
+                showMessage("Income added successfully!", 'success');
+            }
+
+            updateActiveLogExpenses();
+            renderCurrentWeekExpenses();
+            updateCurrentWeekSummary();
+            resetExpenseForm();
+        });
+
+        addExpenseBtn.addEventListener('click', () => {
+            const amount = expenseAmountInput.value;
+            const description = expenseDescriptionInput.value.trim();
+            const date = expenseDateInput.value;
+            const accountId = expenseAccountSelect.value;
+
+            if (amount === '' || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+                showMessage("Please enter a valid expense amount.", 'error');
+                return;
+            }
+            if (description === '') {
+                showMessage("Please enter a description.", 'error');
+                return;
+            }
+            if (date === '') {
+                showMessage("Please select a date.", 'error');
+                return;
+            }
+            if (accountId === '') {
+                showMessage("Please select an account for this expense.", 'error');
+                return;
+            }
+
+            const selectedYear = parseInt(selectYear.value);
+            const selectedMonth = parseInt(selectMonth.value);
+            const selectedWeekNum = parseInt(selectWeek.value);
+            const expenseDateObj = new Date(date + 'T00:00:00');
+            const weekRange = getWeekStartEndDates(selectedWeekNum, selectedMonth, selectedYear);
+
+            if (!weekRange || expenseDateObj < weekRange.start || expenseDateObj > weekRange.end) {
+                showMessage(`The selected date (${date}) does not fall within the selected week period: ${getWeekPeriodString(selectedWeekNum, selectedMonth, selectedYear)} of ${getMonthName(selectedMonth)} ${selectedYear}. Please choose a date within the selected week.`, 'error');
+                return;
+            }
+
+            const newAmount = parseFloat(amount).toFixed(2);
+            const newAccountId = accountId;
+            const newDescription = description;
+            const newDate = date;
+            const newBusinessName = businessNameInput.value.trim();
+            const newType = selectedBusinessType;
+
+            if (editingExpenseId) {
+                const itemIndex = currentWeekExpenses.findIndex(item => item.id === editingExpenseId);
+                if (itemIndex > -1) {
+                    const originalItem = currentWeekExpenses[itemIndex];
+                    const originalAmount = parseFloat(originalItem.amount);
+                    const originalAccountId = originalItem.accountId;
+                    const originalAccount = allPaymentAccounts.find(acc => acc.id === originalAccountId);
+
+                    if (originalAccount) {
+                        if (originalAccount.type === 'Credit Card') {
+                            originalAccount.remainingBalance = (parseFloat(originalAccount.remainingBalance) - originalAmount).toFixed(2);
+                        } else {
+                            originalAccount.balanceLimit = (parseFloat(originalAccount.balanceLimit) + originalAmount).toFixed(2);
+                        }
+                    }
+
+                    const newAccount = allPaymentAccounts.find(acc => acc.id === newAccountId);
+                    if (newAccount && newAccount.type !== 'Credit Card' && parseFloat(newAccount.balanceLimit) < parseFloat(newAmount)) {
+                        showMessage("Insufficient funds in the selected account for this update!", 'error');
+                        if (originalAccount) {
+                             if (originalAccount.type === 'Credit Card') {
+                                originalAccount.remainingBalance = (parseFloat(originalAccount.remainingBalance) + originalAmount).toFixed(2);
+                            } else {
+                                originalAccount.balanceLimit = (parseFloat(originalAccount.balanceLimit) - originalAmount).toFixed(2);
+                            }
+                        }
+                        saveAllPaymentAccounts();
+                        renderAccountList();
+                        return;
+                    }
+
+                    originalItem.amount = newAmount;
+                    originalItem.description = newDescription;
+                    originalItem.date = newDate;
+                    originalItem.accountId = newAccountId;
+                    originalItem.businessName = newBusinessName;
+                    originalItem.type = newType;
+
+                    if (newAccount) {
+                        if (newAccount.type === 'Credit Card') {
+                            newAccount.remainingBalance = (parseFloat(newAccount.remainingBalance) + parseFloat(newAmount)).toFixed(2);
+                            if (parseFloat(newAccount.remainingBalance) > parseFloat(newAccount.balanceLimit)) {
+                                showMessage("Warning: Credit card remaining balance exceeds limit!", 'warning');
+                            }
+                        } else {
+                            newAccount.balanceLimit = (parseFloat(newAccount.balanceLimit) - parseFloat(newAmount)).toFixed(2);
+                        }
+                    }
+                    saveAllPaymentAccounts();
+                    showMessage("Expense updated successfully!", 'success');
+                }
+            } else {
+                const selectedAccount = allPaymentAccounts.find(acc => acc.id === accountId);
+                if (selectedAccount) {
+                    const expenseAmount = parseFloat(amount);
+                    if (selectedAccount.type === 'Credit Card') {
+                        selectedAccount.remainingBalance = (parseFloat(selectedAccount.remainingBalance) + expenseAmount).toFixed(2);
+                        if (parseFloat(selectedAccount.remainingBalance) > parseFloat(selectedAccount.balanceLimit)) {
+                            showMessage("Warning: Credit card remaining balance exceeds limit!", 'warning');
+                        }
+                    } else {
+                        if (parseFloat(selectedAccount.balanceLimit) < expenseAmount) {
+                            showMessage("Insufficient funds in the selected account!", 'error');
+                            return;
+                        }
+                        selectedAccount.balanceLimit = (parseFloat(selectedAccount.balanceLimit) - expenseAmount).toFixed(2);
+                    }
+                    saveAllPaymentAccounts();
+                }
+
+                const newExpense = {
+                    id: generateUniqueId(),
+                    amount: newAmount,
+                    description: newDescription,
+                    date: newDate,
+                    category: currentLogType,
+                    type: currentLogType === 'personal' ? 'expense' : newType,
+                    accountId: newAccountId
+                };
+
+                if (currentLogType === 'personal') {
+                    newExpense.isStudent = currentIsStudent;
+                } else {
+                    newExpense.businessName = newBusinessName;
+                    if (newExpense.businessName === '') {
+                        showMessage("Please enter a business name for business expenses.", 'error');
+                        return;
+                    }
+                }
+                currentWeekExpenses.push(newExpense);
+                showMessage("Expense added successfully!", 'success');
+            }
+
+            updateActiveLogExpenses();
+            renderCurrentWeekExpenses();
+            updateCurrentWeekSummary();
+            resetExpenseForm();
+        });
+
+
+        finalizeWeekBtn.addEventListener('click', () => {
+            if (currentWeekExpenses.length === 0) {
+                showMessage("There are no expenses/income to finalize for the current week.", 'info');
+                return;
+            }
+
+            showConfirmModal(
+                "Finalize This Week's Log?",
+                "Are you sure you want to finalize this week's log? This will save it to history and prepare for a new week.",
+                () => {
+                    const currentYear = parseInt(selectYear.value);
+                    const currentMonth = parseInt(selectMonth.value);
+                    const currentWeek = parseInt(selectWeek.value);
+
+                    const existingLogIndex = allWeeklyLogs.findIndex(log =>
+                        log.year === currentYear &&
+                        log.month === currentMonth &&
+                        log.week === currentWeek &&
+                        log.category === currentLogType &&
+                        (currentLogType === 'business' || log.isStudent === currentIsStudent)
+                    );
+
+                    const newWeeklyLog = {
+                        id: generateUniqueId(),
+                        year: currentYear,
+                        month: currentMonth,
+                        week: currentWeek,
+                        category: currentLogType,
+                        isStudent: currentIsStudent,
+                        createdAt: Date.now(),
+                        expenses: [...currentWeekExpenses]
+                    };
+
+                    if (existingLogIndex > -1) {
+                        newWeeklyLog.id = allWeeklyLogs[existingLogIndex].id;
+                        newWeeklyLog.createdAt = allWeeklyLogs[existingLogIndex].createdAt;
+                        allWeeklyLogs[existingLogIndex] = newWeeklyLog;
+                        showMessage("Weekly log updated and finalized successfully!", 'success');
+                    } else {
+                        allWeeklyLogs.push(newWeeklyLog);
+                        showMessage("Weekly log saved and finalized successfully!", 'success');
+                    }
+
+                    saveAllWeeklyLogs();
+                    renderHistoryList();
+
+                    currentWeekExpenses = [];
+                    activeWeeklyLog = null;
+                    expenseInputForm.classList.add('hidden');
+                    currentWeekListSection.classList.add('hidden');
+                    currentWeekSummarySection.classList.add('hidden');
+                    finalizeWeekBtn.classList.add('hidden');
+                    clearCurrentWeekBtn.classList.add('hidden');
+                    currentWeekTitle.textContent = '';
+                    showMessage("Ready to start a new week!", 'info');
+                    resetExpenseForm();
+                }
+            );
+        });
+
+        clearCurrentWeekBtn.addEventListener('click', () => {
+            showConfirmModal(
+                "Clear Current Week's Expenses?",
+                "Are you sure you want to clear all unsaved expenses/income for the current selected week? This cannot be undone.",
+                () => {
+                    currentWeekExpenses.forEach(item => {
+                        if (item.accountId) {
+                            const account = allPaymentAccounts.find(acc => acc.id === item.accountId);
+                            if (account) {
+                                const amount = parseFloat(item.amount);
+                                if (item.type === 'income') {
+                                    account.balanceLimit = (parseFloat(account.balanceLimit) - amount).toFixed(2);
+                                } else {
+                                    if (account.type === 'Credit Card') {
+                                        account.remainingBalance = (parseFloat(account.remainingBalance) - amount).toFixed(2);
+                                    } else {
+                                        account.balanceLimit = (parseFloat(account.balanceLimit) + amount).toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    saveAllPaymentAccounts();
+                    renderAccountList();
+
+                    currentWeekExpenses = [];
+                    updateActiveLogExpenses();
+                    renderCurrentWeekExpenses();
+                    updateCurrentWeekSummary();
+                    showMessage("Current week's unsaved expenses cleared!", 'success');
+                    resetExpenseForm();
+                }
+            );
+        });
+
+        clearAllHistoryBtn.addEventListener('click', () => {
+            showConfirmModal(
+                "Clear All History?",
+                "Are you sure you want to clear ALL saved expense history? This cannot be undone.",
+                () => {
+                    allWeeklyLogs = [];
+                    saveAllWeeklyLogs();
+                    renderHistoryList();
+                    showMessage("All history cleared!", 'success');
+                }
+            );
+        });
+
+        historySortBy.addEventListener('change', renderHistoryList);
+
+        closeHistoryModalBtn.addEventListener('click', () => {
+            historyViewModal.classList.add('hidden');
+            historyAdPlaceholder.classList.add('hidden');
+        });
+
+        // Payment Account Event Listeners
+        accountTypeChequingsBtn.addEventListener('click', () => selectAccountType('Chequings'));
+        accountTypeSavingsBtn.addEventListener('click', () => selectAccountType('Savings'));
+        accountTypeCreditCardBtn.addEventListener('click', () => selectAccountType('Credit Card'));
+        addUpdateAccountBtn.addEventListener('click', addUpdateAccount);
+        cancelEditAccountBtn.addEventListener('click', resetAccountForm);
+
+        cancelEditExpenseBtn.addEventListener('click', resetExpenseForm);
+
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDateDropdowns();
+            loadAllWeeklyLogs();
+            loadAllPaymentAccounts();
+            currentWeekSection.classList.add('hidden');
+
+            confirmModalCancelBtn.addEventListener('click', () => {
+                hideConfirmModal();
+            });
+
+            confirmModalConfirmBtn.addEventListener('click', () => {
+                if (currentConfirmCallback) {
+                    currentConfirmCallback();
+                }
+                hideConfirmModal();
+            });
+
+            selectAccountType('Chequings');
+        });
+    </script>
+</body>
+</html>
