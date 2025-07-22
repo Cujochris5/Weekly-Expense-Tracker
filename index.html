@@ -6,6 +6,7 @@
     <title>Weekly Expense Tracker</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6915226391018077" crossorigin="anonymous"></script>
     <style>
         /* Custom styles for Inter font and general body styling */
         body {
@@ -289,7 +290,7 @@
                     <div class="flex justify-between items-center">
                         <span class="text-gray-700">Personal Net Balance:</span>
                         <span id="current-week-net-personal-balance" class="font-bold text-purple-700">$0.00</span>
-                    </div>
+                        </div>
                 </div>
                 <!-- Business Summary Rows -->
                 <div id="summary-business-totals" class="space-y-2 hidden">
@@ -465,7 +466,6 @@
                             <span id="modal-total-personal-income" class="font-bold text-green-700">$0.00</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-700">Personal Net Balance:</span>
                             <span id="modal-net-personal-balance" class="font-bold text-purple-700">$0.00</span>
                         </div>
                     </div>
@@ -1068,7 +1068,7 @@
         }
 
         function selectPersonalSubCategory(isStudent) {
-            currentIsStudent = isIsStudent;
+            currentIsStudent = isStudent;
             selectStudentBtn.classList.remove('selected');
             selectNotStudentBtn.classList.remove('selected');
             if (isStudent) {
@@ -1084,7 +1084,7 @@
         }
 
         function updateCurrentWeekUI() {
-            resetExpenseForm(); // Reset the form to a clean slate before deciding what to show
+            resetExpenseForm();
 
             if (currentLogType === null || (currentLogType === 'personal' && currentIsStudent === null)) {
                 currentWeekSection.classList.add('hidden');
@@ -1353,61 +1353,34 @@
 
             editingExpenseId = id;
 
-            // 1. Reset the form to a clean state
-            resetExpenseForm();
+            resetExpenseForm(); // Clear and hide all input fields first
 
-            // 2. Set the global log type and sub-category variables directly
-            currentLogType = itemToEdit.category;
-            currentIsStudent = itemToEdit.isStudent;
-
-            // 3. Manually update the selected classes for the category and sub-category buttons
-            selectPersonalLogBtn.classList.remove('selected');
-            selectBusinessLogBtn.classList.remove('selected');
-            if (currentLogType === 'personal') {
-                selectPersonalLogBtn.classList.add('selected');
-                personalSubCategoryContainer.classList.remove('hidden');
-                selectStudentBtn.classList.remove('selected');
-                selectNotStudentBtn.classList.remove('selected');
-                if (currentIsStudent) {
-                    selectStudentBtn.classList.add('selected');
-                } else {
-                    selectNotStudentBtn.classList.add('selected');
-                }
-            } else { // Business
-                selectBusinessLogBtn.classList.add('selected');
-                personalSubCategoryContainer.classList.add('hidden');
+            // Set the category and sub-category based on the item being edited
+            selectLogType(itemToEdit.category);
+            if (itemToEdit.category === 'personal') {
+                selectPersonalSubCategory(itemToEdit.isStudent);
             }
 
-            // 4. Ensure the main expense input form container is visible
+            // Ensure the main expense input form is visible
             expenseInputForm.classList.remove('hidden');
 
-            // 5. Populate fields and set button texts based on item type and category
+            // Populate fields and adjust UI based on item type
             if (itemToEdit.type === 'income') {
-                personalIncomeSection.classList.remove('hidden');
-                document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.add('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.add('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.add('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.add('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.add('hidden');
-                addExpenseBtn.classList.add('hidden');
-
+                personalIncomeSection.classList.remove('hidden'); // Show income section
                 addIncomeBtn.classList.remove('hidden');
                 addIncomeBtn.textContent = 'Update Income';
 
                 incomeAmountInput.value = parseFloat(itemToEdit.amount);
                 incomeDescriptionInput.value = itemToEdit.description;
                 incomeAccountSelect.value = itemToEdit.accountId || '';
-                expenseDateInput.value = itemToEdit.date;
+                expenseDateInput.value = itemToEdit.date; // Income also uses this date input
             } else { // It's an expense (personal or business outgoing/incoming)
-                personalIncomeSection.classList.add('hidden');
-                businessExpenseOptionsContainer.classList.add('hidden');
-
+                // Ensure expense fields are visible
                 document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.remove('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.remove('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.remove('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.remove('hidden');
-                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.remove('hidden');
-                addIncomeBtn.classList.add('hidden');
+                document.querySelector('#expense-input-form > div:nth-of-type(2)').classList.remove('hidden'); // Amount
+                document.querySelector('#expense-input-form > div:nth-of-type(3)').classList.remove('hidden'); // Description
+                document.querySelector('#expense-input-form > div:nth-of-type(4)').classList.remove('hidden'); // Date
+                document.querySelector('#expense-input-form > div:nth-of-type(5)').classList.remove('hidden'); // Account select
 
                 addExpenseBtn.classList.remove('hidden');
                 addExpenseBtn.textContent = 'Update Expense';
@@ -1418,7 +1391,7 @@
                 expenseAccountSelect.value = itemToEdit.accountId || '';
 
                 if (itemToEdit.category === 'business') {
-                    businessExpenseOptionsContainer.classList.remove('hidden');
+                    businessExpenseOptionsContainer.classList.remove('hidden'); // Show business specific options
                     businessNameInput.value = itemToEdit.businessName || '';
                     selectedBusinessType = itemToEdit.type;
                     typeOutgoingBtn.classList.remove('selected');
@@ -1430,7 +1403,7 @@
                     }
                 }
             }
-            cancelEditExpenseBtn.classList.remove('hidden');
+            cancelEditExpenseBtn.classList.remove('hidden'); // Show cancel edit button
         }
 
 
@@ -1453,6 +1426,7 @@
             cancelEditExpenseBtn.classList.add('hidden');
             appMessage.classList.add('hidden');
 
+            // Hide all input sections for a clean reset
             personalIncomeSection.classList.add('hidden');
             businessExpenseOptionsContainer.classList.add('hidden');
             document.querySelector('#expense-input-form > h3.text-xl.font-semibold.text-red-700').classList.add('hidden');
